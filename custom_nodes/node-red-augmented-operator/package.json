@@ -1,0 +1,22 @@
+{
+  "name": "node-red-augmentedoperator",
+  "version": "0.1.0",
+  "description": "Two nodes set, that provides a way to put/get well formated variables in/from vijeo360 AR server.",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "request": "^2.75.x"
+  },
+  "keywords": [
+    "Augmented Operator",
+    "AR"
+  ],
+  "author": "Schneider-electric",
+  "license": "ISC",
+  "node-red": {
+    "nodes": {
+        "Augmented Operator": "node-red-augmentedoperator.js"
+      }
+  }
+}

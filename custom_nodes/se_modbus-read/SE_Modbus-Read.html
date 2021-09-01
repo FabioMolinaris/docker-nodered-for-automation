@@ -1,0 +1,572 @@
+<style>
+    .whiteColor {
+        fill: #fff;
+        font-family:Nunito Regular;
+    }
+
+    .heading{
+        background:#32963f !important;
+        height: 25px;
+        padding: 5px;
+    } 
+    .heading label{
+        color:white !important;
+        font-weight:bold !important;
+        text-align: center;
+        padding-top: 3px;
+    }
+    label{
+        margin: 0;
+        padding: 10px 5px 5px 5px;
+    }
+    hr{
+        margin: 8px 0px;
+    }
+    .tags-div input{
+        margin-right: 4px;
+    }
+    .se-primary{
+        background: #32ad3c !important;
+        border-color: #32ad3c !important;
+        color: #fff !important;
+    }
+    .se-primary:hover{
+        background: #0e8818 !important;
+        border-color: #0e8818 !important;
+    }
+    #tags, #main{
+        margin-top: 8px;
+    }
+    .input-tags[disabled] {
+        cursor: alias;
+        color: #9b9b9b;
+        background-color: #ffffff;
+    }
+</style>
+
+<!--Register Node Type-->
+<script type='text/javascript'>
+    RED.nodes.registerType("SE_Modbus-Read",
+        {
+            category: "modbus", color: "#3DCD58",
+            labelStyle: function () {
+                return this.name ? "whiteColor" : "";
+            },
+            defaults: {
+                name: { value: "SEModbusRead" },
+                version: { value: "1.0.0" },
+                unitid: {
+                    value: "", validate: function (val) {
+                        if (RED.validators.number() && (val >= 0 && val <= 65535) && (val % 1) === 0) {
+                            return true;
+                        }
+                        else {
+                            alert("SEModbusRead: Incorrect value for Unit ID Field");
+                            return false;
+                        }
+                    }
+                },
+
+                dataType: { value: "Coil", required: !0 },
+
+                adr: {
+                    value: "", required: !0, validate: function (val) {
+                        if (RED.validators.number() && (val >= 0 && val <= 65535) && (val % 1) === 0) {
+                            return true;
+                        }
+                        else {
+                            alert("SEModbusRead: Incorrect value for Address Field");
+                            return false;
+                        }
+                    }
+                },
+
+
+                quantity: {
+                    value: "", required: !0, validate: function (val) {
+                        if (RED.validators.number() && (val >= 0 && val <= 65535) && (val % 1) === 0) {
+                            return true;
+                        }
+                        else {
+                            alert("SEModbusRead: Incorrect value for Quantity Field");
+                            return false;
+                        }
+                    }
+                },
+
+                rate: {
+                    value: "1", required: !0, validate: function (val) {
+                        if (RED.validators.number() && (val >= 0 && val <= 65535) && (val % 1) === 0) {
+                            return true;
+                        }
+                        else {
+                            alert("SEModbusRead: Incorrect value for Poll Rate Field");
+                            return false;
+                        }
+                    }
+                },
+                rateUnit: { value: "s", required: !0, validate: function (e) { return "ms" == e || "s" == e || "m" == e || "h" == e } },
+                logging: { value: "1" },
+                loggingLevel: { value: "error" },
+                server: { type: "SE_Modbus-Client", required: !0 },
+                alltags: { value: "" }
+
+            },
+            inputs: 0,
+            outputs: 1,
+            icon: "mdbus-read.png",
+            paletteLabel: "SEModbusRead",
+            label: function () { return this.name || "" },
+
+            oneditprepare: function () {
+                let node = this;
+                let loggingSelector = $('#node-input-logging')
+
+                let loggingDivision = $("#loggingDivision")
+                loggingSelector.change(function () {
+                    if (loggingSelector.val() == '1') {
+                        loggingDivision.show();
+                    } else {
+                        loggingDivision.hide();
+                    }
+                });
+                
+                if ($('#node-input-alltags').val() != '') {
+                    $('#add-tag-btn').attr('disabled', false);
+                }           
+            }
+
+        })
+    function enableAddTagButton() {
+        let start_address = $('#node-input-adr').val();
+        let total_quantity = $('#node-input-quantity').val();
+        if (start_address >= 0 && total_quantity > 0) {
+            $('#add-tag-btn').attr('disabled', false);
+            if ($('#node-input-alltags').val() == '') {
+                addDefaultRegdata();
+            }
+        } else {
+            $('#add-tag-btn').attr('disabled', true);
+            $('#node-input-alltags').val('');
+        }
+    }
+    function addDefaultRegdata(){
+        let start_address = $('#node-input-adr').val();
+        let total_quantity = $('#node-input-quantity').val();
+        let tagData = [];
+        for (let index = 0; index < total_quantity; index++) {
+            tagData.push({
+                'address': (parseInt(start_address) + index),
+                'tag': '',
+                'type': '',
+                'isEnabled': true
+            })
+        }
+        $('#node-input-alltags').val(JSON.stringify(tagData));
+    }
+    function addRemoveRegCount() {
+        let start_address = $('#node-input-adr').val();
+        let total_quantity = $('#node-input-quantity').val();
+        let tagData = $('#node-input-alltags').val();
+        if (start_address >= 0 && total_quantity > 0) {
+            if(tagData != ''){
+                tagData = JSON.parse($('#node-input-alltags').val());
+                let count = tagData.length;
+                let diff = total_quantity-count;
+                if(total_quantity != count){
+                    if(total_quantity < count){
+                        tagData.length = total_quantity;
+                    } else if(total_quantity > count){
+                        let lastAddress = tagData[count-1].address;
+                        for (let index = 1; index <= diff; index++) {
+                            tagData.push({
+                                'address': (parseInt(lastAddress) + index),
+                                'tag': '',
+                                'type': '',
+                                'isEnabled': true
+                            })
+                        }
+                    }
+                    $('#node-input-alltags').val(JSON.stringify(tagData));
+                }
+            }
+        }
+    }
+
+    function updateAddress() {
+        let start_address = $('#node-input-adr').val();
+        let total_quantity = $('#node-input-quantity').val();
+        let alltags = $('#node-input-alltags').val();
+        let newData = [];
+        if(start_address != '' && total_quantity != ''){
+            start_address = parseInt($('#node-input-adr').val());
+            total_quantity = parseInt($('#node-input-quantity').val());
+            if (start_address >= 0 && total_quantity > 0) {
+                if(alltags != ''){
+                    let tagData = JSON.parse($('#node-input-alltags').val());
+                    let count = tagData.length;
+                    for (let index = 0; index < count; index++) {
+                        tagData[index].address = start_address + index;
+                    }
+                    $('#node-input-alltags').val(JSON.stringify(tagData));
+                } else{
+                    for (let index = 0; index < total_quantity; index++) {
+                        newData.push({
+                            'address': start_address + index,
+                            'tag': '',
+                            'type': '',
+                            'isEnabled': true
+                        });
+                    }
+                    $('#node-input-alltags').val(JSON.stringify(newData));
+                }
+            }
+        }
+    }
+
+    function addTag() {
+        $('#tags').show("slide", { direction: "right" }, 0);
+        $('#main').hide();
+        $('#tagDivDisplay').html('');
+        let tagData = $('#node-input-alltags').val();
+        if(tagData != ''){
+            tagData = JSON.parse($('#node-input-alltags').val());
+            for (let index = 0; index < tagData.length; index++) {
+                $('#tagDivDisplay').append(`<div class='form-row tags-div' style="display: flex;">
+                    <label><i class='icon-tag'></i>${tagData[index].address}</label>
+                    <input type='text' id='reg_${index}' value='${tagData[index].address}' style="display: none;"/>
+                    <input class="input-tags" type='text' id='tag_${index}' value='${tagData[index].tag}' data-index="${index}" onkeyup="updateNextTagName(event)" placeholder='Tag'/> 
+                    <select class="input-tags" type='text' id='var_type_${index}' data-index="${index}" onchange='checkFor32BitType(event)'>
+                        <option value='' disabled selected>Select Type</option>
+                        <option value='int'>int</option>
+                        <option value='boolean'>boolean</option>
+                        <option value='float32'>float32</option>
+                    </select>
+                </div>`);
+                if (tagData[index].isEnabled) {
+                    $('#var_type_' + index).val(tagData[index].type);
+                } else {
+                    $('#tag_' + index).val(tagData[index-1].tag).prop('disabled', true);
+                    $('#var_type_' + index).val(tagData[index-1].type).prop('disabled', true);
+                }
+            }
+        } else{
+            let start_address = parseInt($('#node-input-adr').val());
+            let total_quantity = parseInt($('#node-input-quantity').val());
+            for (let index = 0; index < total_quantity; index++) {
+                $('#tagDivDisplay').append(`<div class='form-row tags-div' style="display: flex;">
+                    <label><i class='icon-tag'></i>${start_address+index}</label>
+                    <input type='text' id='reg_${index}' value='${start_address+index}' style="display: none;"/>
+                    <input class="input-tags" type='text' id='tag_${index}' value='' data-index="${index}" onkeyup="updateNextTagName(event)" placeholder='Tag'/> 
+                    <select class="input-tags" type='text' id='var_type_${index}' data-index="${index}" onchange='checkFor32BitType(event)'>
+                        <option value='' disabled selected>Select Type</option>
+                        <option value='int'>int</option>
+                        <option value='boolean'>boolean</option>
+                        <option value='float32'>float32</option>
+                    </select>
+                </div>`);
+            }
+        }
+
+    }
+    function goBack() {
+        $('#tags').hide();
+        $('#main').show("slide", { direction: "left" }, 0);
+    }
+    function addUpdateTags(){
+        $('#tags').hide();
+        $('#main').show("slide", { direction: "left" }, 0);
+        let allData = [];
+        $('.tags-div').each(function (index) {
+            if (!$(this).children('input#tag_' + index).prop('disabled')) {
+                allData.push({
+                    'address': $(this).children('input#reg_' + index).val(),
+                    'tag': $(this).children('input#tag_' + index).val(),
+                    'type': $(this).children('select').val(),
+                    'isEnabled': true
+                });
+            } else {
+                allData.push({
+                    'address': $(this).children('input#reg_' + index).val(),
+                    'tag': '',
+                    'type': '',
+                    'isEnabled': false
+                });
+            }
+        });
+        $('#node-input-alltags').val(JSON.stringify(allData));
+    }
+    function checkFor32BitType(e) {
+        let curr = $(e.target).data('index');
+        let next = $(e.target).data('index') + 1;
+        let tName = $('#tag_'+curr).val();
+        let cType = $(e.target).val();
+        if (cType == 'float32') {
+            $('input#tag_' + next).val(tName).prop('disabled', true);
+            $('select#var_type_' + next).val('float32').prop('disabled', true);
+        } else {
+            $('input#tag_' + next + ',select#var_type_' + next).val('').prop('disabled', false);
+        }
+    }
+    function updateNextTagName(e) {
+        let curr = $(e.target).data('index');
+        let next = $(e.target).data('index') + 1;
+        let tName = $('#tag_'+curr).val();
+        let cType = $('select#var_type_'+curr).val();
+        if (cType == 'float32') {
+            $('input#tag_' + next).val(tName).prop('disabled', true);
+            $('select#var_type_' + next).val('float32').prop('disabled', true);
+        }
+        //  else {
+        //     $('tag_' + next + ',#var_type_' + next).val('').prop('disabled', false);
+        // }
+    }
+</script>
+
+<!--Configuration Parameters : Input From Users-->
+<script type="text/x-red" data-template-name="SE_Modbus-Read">
+
+        <div class="heading"> 
+            <label> Schneider Electric </label> 
+         </div>
+         <br>
+         <div id="main">
+         <div class="form-row">
+            <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+            <input type="text" id="node-input-name" placeholder="Name">
+         </div>
+         <div class="form-row">
+            <for="node-input-version">
+         </div>
+         <div class="form-row">
+            <label for="node-input-dataType"><i class="icon-list"></i> FC</label>
+            <select id="node-input-dataType">
+               <option value="Coil">FC 1: Read Coil Status</option>
+               <option value="Input">FC 2: Read Input Status</option>
+               <option value="HoldingRegister">FC 3: Read Holding Registers</option>
+               <option value="InputRegister">FC 4: Read Input Registers</option>
+            </select>
+         </div>
+         <div class="form-row">
+            <label for="node-input-adr"><i class="icon-home"></i> Address</label>
+            <input type="text" id="node-input-adr" placeholder="0:65535" onkeyup="updateAddress()" onblur="enableAddTagButton()">
+         </div>
+         <div class="form-row">
+            <label for="node-input-quantity"><i class="icon-bookmark"></i> Quantity</label>
+            <input type="text" id="node-input-quantity" placeholder="1-65535" style="max-width:200px" onkeyup="addRemoveRegCount()" onblur="enableAddTagButton()">
+            <button id="add-tag-btn" class="editor-button" onclick="addTag()" disabled>Add Tag</button>
+            <input type="text" id="node-input-alltags" style="display: none;"/>
+         </div>
+         <div class="form-row">
+            <label for="node-input-rate"><i class="icon-bookmark"></i> Poll Rate </label>
+            <input type="number" id="node-input-rate" placeholder="1-65535" style="max-width:120px">
+            <select id="node-input-rateUnit" style="max-width:160px">
+               <option value="ms">millisecond(s)</option>
+               <option value="s">second(s)</option>
+               <option value="m">minute(s)</option>
+               <option value="h">hour(s)</option>
+            </select>
+         </div>
+         <div  class='form-row'> <label for='node-input-unitid'><i class='icon-bookmark'></i> Unit ID
+            </label> <input type='text' id='node-input-unitid'  style='max-width:80px'> 
+         </div>
+         <div class="form-row">
+            <label for="node-input-server"><i class="icon-globe"></i> Server</label>
+            <input type="text" id="node-input-server">
+         </div>
+         <div class="form-row">
+            <label for="node-input-logging"><i class="fa fa-random"></i> Logging</label>
+            <select type='text' id='node-input-logging'>
+               <option value="1">Enable</option>
+               <option value="0">Disable</option>
+            </select>
+         </div>
+         <div class="form-row" id="loggingDivision">
+            <div class="form-row">
+               <label for="node-input-loggingLevel"><i class="fa fa-random"></i> Level</label>
+               <select type='text' id='node-input-loggingLevel'>
+                  <option value="error">error</option>
+                  <option value="info">info</option>
+                  <option value="debug">debug</option>
+               </select>
+            </div>
+         </div>
+    </div>
+    <div id="tags" style="display: none;">
+        <button class="editor-button" onclick="goBack()">Back</button>
+        <button class="editor-button pull-right se-primary" onclick="addUpdateTags()">Add Tags</button>
+        <hr>
+        <div id="tagDivDisplay"></div>
+
+    </div>
+    </script>
+
+
+<script type="text/x-red" data-help-name="SE_Modbus-Read">
+
+        <div class="heading"> 
+            <label> Schneider Electric </label> 
+         </div>
+            
+            <!--Page Break-->
+            <br>
+        
+        <h1>Introduction</h1>
+    
+        <p>Connects to a Modbus TCP and Serial Devices to read register values at a given poll rate.</p>
+    
+        <h1> Description</br> </h1>
+    
+            <h2>Necessary Configurations Required</h2>
+                <ul>
+                    <li>FC: Modbus Read Register Function code. Supported function codes are mentioned down.</li>
+                    <li>Address: Register address that has to be read.It should have values between 0 & 65535. </li>
+                    <li>Quantity: Number of registers to be read starting from the Address configured in above step. It should have values between 0 & 65535.</li>
+                    <li>Poll Rate: Modbus read register polling time. </li>
+                    <li>Unid ID: Slave address of the Modbus Serial and TCP(Optional) Devices.</li>
+                    <li> Logging : Configuration parameter for Enable or Disable the logging. Logging is by default Enabled.</li>
+                    <li> Level : Configuration parameter for selecting the logging level. There are three logging levels Info, Debug and Error. Its  default value is Error.</li>
+                    <li>The Modbus device(Tcp and Serial Slave) from  where the data has to be read. It is having combo-box for selection of the earlier defined slaves.
+                        For adding a new slave, edit button should be given next to the selector field. Clicking on the 
+                        edit button, the Slave configuration window shall appear and should contain the following fields:
+                        <ul>
+                            <li>Type:(TCP/Serial). If selected type is TCP following configurations are required.</li>
+                                <li>Host: Text filed to configure the slave IP address.</li>
+                                <li>Port (default 502): Text field to configure the port number. </li>
+                                <li>TCP Type: There are four options availabele. Default, Telnet, C701 and RTU-BUFFERED.Only Default option 
+                                    is verified for this node.</li>
+                                <li>Type:(TCP/Serial). If selected type is Serial following configurations are required.</li>
+                                <li>Serial Port: Text field to configure the Serial port name. (/dev/tty.usbserial | COM[1..n])</li>
+                                <li>Baud rate: A drop down option for selecting the baud rate.(115200, 19200, 9600 ...)</li>
+                                <li>Databits: A drop down option for selecting the data bit (5, 6, 7 and 8).</li>
+                                <li>Stopbits: A drop down option for selecting the stop bit (1, 1.5 and 2).</li>
+                                <li>Parity: A drop down option for selecting the parity bit (None, Even ,Odd, Mark and Space).</li>
+                                <li>Serial Type: A drop down option for selecting the serial type(RTU, ASCII).</li>
+                                <li>Connection delay: Time to delay first command sending after reconnect(default 500 ms) </li>
+    
+                                <li>Timeout (default 1000 ms) - It is millisecond(ms) delay for the command timeout on ModbusRTU command.</li>
+                                <li>Reconnect timeout (default 2000 ms) - It is the reconnect time out.</li>
+                                <li>Queue commands (Enable/Disable) - If selected Enable it buffers incoming Modbus commands and send them with delay.</li>
+                                <li>Queue Delay (default 100 ms) - It is millisecond(ms) interval to delay sending commands from queue (sumOfWaiting=requestsPerCycle*delay).</li>
+                        </ul>
+                    </li>
+                </ul>
+    
+    
+            <h2>Function code currently supported</h2>
+                <ul>
+                    <li>FC 1: Read Coil Status</li>
+                    <li>FC 2: Read Input Status</li>
+                    <li>FC 3: Read Holding Registers</li>
+                    <li>FC 4: Read Input Registers</li>
+                </ul>
+    
+    
+        
+    
+    
+        <h1>Input </br></h1>
+        
+         <p>
+            None
+         </p>
+    
+         <h1>Output </br></h1>
+<pre>
+<code>
+{  
+    "name":"node_name",
+    "id":"modbusTCP@ip_address",
+    "timestamp":"date_time",
+    "data":{  
+        "parameter_name":{  
+            "value": value_data,
+            "type":"type_data"
+        },
+        "parameter_name":{  
+            "value":value_data,
+            "type":"type_data"
+        }
+    }
+}
+</code>
+</pre>
+
+<p>Example:</p>
+
+
+<pre>
+<code>
+{  
+    "name":"SEModbusRead",
+    "id":"modbusTCP@192.168.100.10",
+    "timestamp":"2018-12-19T03:28:27.821Z",
+    "data":{  
+        "temperature":{  
+            "value":24.5,
+            "type":"float32"
+        },
+        "speed":{  
+            "value":237,
+            "type":"int"
+        }
+    }
+}
+</code>
+</pre>
+         <h1> Limitation </br> </h1>
+            <h2>Maximum number of read registers supported.</h2>
+    
+            <ul>
+              <li>Read Coil Status:2000</li>
+              <li>Read Input Status: 2000</li>
+              <li>Read Holding Register:125</li>
+              <li>Read Input Registers:125</li>
+              Node red editor Deug window shows maximum 1000 register value only.
+              <li>Reading of floating type value is not supported.</li>
+            </ul>
+    
+        <h1> Usage </br> </h1>
+            <ul>
+            <li> Choose a function code (FC) from the dropdown menu.</li>
+            <li> Select  the coil/input/register start address (0:65535), and the quantity of coils/inputs/registers to be read from the start address.</li>
+            <li> Configure the polling rate.</li>
+            <li> Selet the slave type (Serial/TCP).</li>
+            <li> If slave selected  is serial configure slave ID, Baud Rate, Parity , Stop bits and Modbus Type (RTU or ASCII) and for TCP configure the IP address.</li>
+        </ul>
+    
+        <h1>
+            Additional Information
+       </h1>
+       <ul>
+        <li>In server configuration TCP type C701, Telnet and RTU-BUFFERED is not verified.</li>
+        <li>In case of Serial type server configuration adding two different servers with same COM port is not advisable, as it will initiate two different instances for same COM port which may cause Modbus node not to function properly.</li>
+        <li>If Modbus node used for serial devices more than 1 time in the node red flow, It is recommended to use Queue delay of 100ms or more, as serial slave device may not respond for multiple request at a time.</li>
+        <li>Log file is saved inside the log folder inside node folder of existing installed se-node-red-modbus node. Log file is saved with name Modbus.log and Modbus1.log(Backup file).</li>
+        <li>The log file size is fixed to 5MB. Once the 5MB limit is crossed a new log file is created and the previous file is preserved as backup. If this new file again reaches 5MB the existing backup file is first deleted and then the current file is preserved as backup and a new file is created. This procedure is always repeated and the total space consumed would never cross 10MB.
+        </br>
+        Eg: Modbus.log-created
+        </br>
+        file1- reaches 5mb- file2 - created -File1 is backup file
+        </br>
+        file2 reaches 5mb - File1 is deleted - File2 is made backup file and file3 is created.</li>
+        <li>File size is 5MB for all the se-node-red-modbus(SEModbusRead,SEModbusWrite) in the flow. Logs can be differentiated by node ID in the Log file.</li>
+        <li>User should not delete the log file if node red server is running. It will stop the data logging. If by mistake user delete the current log file, user need to restart the server to start file logging again.</li>
+        <li>If selected Level in logging is error only error messages are logged. If selected level in logging is info both error and info messages are logged. If selected level in logging is debug all log messages error, info and debug are logged.</li>
+        <li>Time stamp for any node in the log file may differ from the time stamp in debug window.</li>
+        <li>When nodes are not properly configured error status may not be displayed immediately.</li>            
+       </ul> 
+    
+        <h1> Reference </h1>
+            <ul>
+                <li> 
+                    <a href="http://www.modbus.org/">Click here</a>
+                </li>
+            </ul>
+    
+            <div style="background:#32963f !important;"> 
+                <label style="color:white !important; font-weight:bold !important; margin-left:15%;margin-top:1%"> <a href="https://www.schneider-electric.co.in/en/"style="color: white">Copyright@Schneider-Electric</a></label> 
+        </div>
+    
+    
+    </script>

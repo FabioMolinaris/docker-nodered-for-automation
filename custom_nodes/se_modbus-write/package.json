@@ -1,0 +1,9 @@
+{
+    "version" : "0.0.1",
+    "name" : "se_modbus-write",
+    "node-red" : {
+        "nodes": {
+            "se_modbus-write": "SE_Modbus-Write.js"
+        }
+    }
+}

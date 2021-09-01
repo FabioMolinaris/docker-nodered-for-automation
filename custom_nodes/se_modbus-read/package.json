@@ -1,0 +1,9 @@
+{
+    "version" : "0.0.1",
+    "name" : "se_modbus-read",
+    "node-red" : {
+        "nodes": {
+            "se_modbus-read": "SE_Modbus-Read.js"
+        }
+    }
+}

@@ -1,0 +1,229 @@
+<!-- Augmented-Operator-variable node -->
+<script type="text/javascript">
+    RED.nodes.registerType('Augmented-Operator-variable', {
+        category: 'Schneider Electric',
+        color: '#088A08',
+        defaults: {
+            arservervarnamespace : { value: "" , validate:function(v){return v.indexOf(',') == -1;}},
+            arservervarname : { value: "" , validate:function(v){return v.indexOf(',') == -1;}},
+            arserverdatatype : {value: "String"},
+            arservervalueType: { value:"msg" },
+            arservervalue : { value: "payload", required:true},
+            /*arserverquality:{ value:"good"},*/
+            /*arserverttltype : {value:"unlimited"},*/
+            /*arserveristtl: {value:false},
+            arserverttlvalue : {value:"1", validate: RED.validators.number() },
+            arserverttlunit : {value:"s"},*/
+
+        },
+        inputs:1,
+        outputs:1,
+        icon: "arserver.jpg",
+        
+        label: function() {
+            var fullyQualifiedName = "";
+            if (this.arservervarnamespace){
+                fullyQualifiedName = this.arservervarnamespace + "." + this.arservervarname;
+            }else{
+                fullyQualifiedName= this.arservervarname;
+            }
+            return fullyQualifiedName || "Augmented-Operator-variable" ;
+        },
+        labelStyle: function () {
+            return this.arservervarname ? "node_label_italic" : "";
+        },
+        oneditprepare: function(){
+            var otherType = {value:"other",label:"other",hasValue:true,icon:"red/images/typedInput/az.png"};
+            $("#node-input-arservervalue").typedInput({default:this.arservervalueType||'msg', types:['msg','flow','global', otherType]});
+            /*
+            $("#node-input-arserveristtl").change(function() {
+                $(".ao-ttl-row").hide();
+                if ($("#node-input-arserveristtl").is(':checked')) {
+                    $("#ao-ttl-row-interval").show();
+                }
+            });
+            */
+        },
+        oneditsave:function(){
+            this.arservervalueType = $("#node-input-arservervalue").typedInput('type');
+            /*this.arserverttltype = $("#node-input-arserverttltype").val();
+            this.arserveristtl = $("#node-input-arserveristtl").val();
+            this.arserverttlvalue = $("#node-input-arserverttlvalue").val();
+            this.arserverttlunit = $("#node-input-arserverttlunit").val();*/
+        }
+    }
+    );
+</script>
+
+<style>
+    .ao-ttl-row {
+        padding-left: 110px;
+    }
+</style>
+
+<script type="text/x-red" data-template-name="Augmented-Operator-variable">
+    <div class="form-row">
+        <label for="node-input-arservervarnamespace"><i class="icon-tasks"></i> Namespace</label>
+        <input type="text" id="node-input-arservervarnamespace" placeholder="ns">
+    </div>
+    <div class="form-row">
+        <label for="node-input-arservervarname"><i class="icon-tasks"></i> Variable name</label>
+        <input type="text" id="node-input-arservervarname" placeholder="VAR1">
+    </div>
+    <div class="form-row">
+        <label for="node-input-arserverdatatype"><i class="icon-tasks"></i> Type</label>
+        <select type="text" id="node-input-arserverdatatype">
+            <option value="String">String</option>
+            <option value="WString">WString</option>
+            <option value="Boolean">Boolean</option>
+            <option value="Int8">Int8</option>
+            <option value="Int16">Int16</option>
+            <option value="Int32">Int32</option>
+            <option value="UInt8">UInt8</option>
+            <option value="UInt16">UInt16</option>
+            <option value="UInt32">UInt32</option>
+            <option value="Float">Float</option>
+            <option value="Double">Double</option>
+            <option value="SByte">SByte</option>
+            <option value="Byte">Byte</option>
+            <option value="Time">Time</option>
+            <option value="Date">Date</option>
+            <option value="DateTime">DateTime</option>
+            <option value="TimeOfDay">TimeOfDay</option>
+        </select>
+    </div>
+    <!-- Pas de spécification de la "quality" -->
+<!--     <div class="form-row">
+        <label for="node-input-arserverquality"><i class="icon-tasks"></i> Quality</label>
+        <select type="text" id="node-input-arserverquality">
+            <option value="good">good</option>
+            <option value="bad">bad</option>
+        </select>
+    </div> -->
+    <div class="form-row">
+        <label for="node-input-arservervalue"><i class="icon-tag"></i> Value</label>
+        <input type="text" id="node-input-arservervalue" style="width: 70%">
+    </div>
+
+
+<!--     <div class="form-row">
+        <label for="arserverttltype"><i class="fa fa-repeat"></i> Time to live</label>
+        <select id="node-input-arserverttltype">
+            <option value="unlimited">Unlimited</option>
+            <option value="limited">Limited</option>
+        </select>
+
+    </div> -->
+<!-- Desactivate TTL
+        <div class="form-row">
+        <label for="arserveristtl"><i class="fa fa-repeat"></i> Time to live</label>
+        <input type="checkbox" id="node-input-arserveristtl" style="display: inline-block; width: auto; vertical-align: top;">
+        <label for="node-input-usetls" style="width: auto"></label>
+        <div id="node-row-tls" class="hide">
+            <label style="width: auto; margin-left: 20px; margin-right: 10px;" for="node-input-tls"><span data-i18n="httpin.tls-config"></span></label><input type="text" style="width: 300px" id="node-input-tls">
+        </div>
+    </div>
+    <div class="form-row ao-ttl-row hidden" id="ao-ttl-row-interval">
+        <input id="node-input-arserverttlvalue" class="inject-time-count" value="1"></input>
+        <select style="width: 100px" id="node-input-arserverttlunit">
+            <option value="ms">milliseconds</option>
+            <option value="s">seconds</option>
+            <option value="m">minutes</option>
+            <option value="h">hours</option>
+        </select><br/>
+    </div>
+-->
+</script>
+
+
+
+<script type="text/x-red" data-help-name="Augmented-Operator-variable">
+  <p>Creates a well formated AOAvariable to be <code>PUT</code> or <code>GET</code> into/from an <i style="font-style:italic;">Augmented Operator server</i></p>
+  <h3>Inputs</h3>
+  <ul>
+      <li><code>msg.ar_datamodel_namespace</code> OR specified <i style="font-style:italic;">Namespace</i></li>
+        <p>Represents the variable's namespace (<code>String</code> - optional).</p>
+      <li><code>msg.ar_datamodel_name</code> OR <code>msg.topic</code> OR specified <i style="font-style:italic;">Variable name</i></li>
+        <p>Represents the variable's name (<code>String</code> - required).</p>
+      <li><code>msg.ar_datamodel_type</code> OR specified <i style="font-style:italic;">Type</i></li>
+        <p>Represents the variable's type (<code>String</code> - required).</p>
+        <p>Type have to be one of these: String, WString, Boolean, Int8, Int16, Int32, UInt8, UInt16, UInt32, Float, Double, SByte, Byte, Time, Date, DateTime, TimeOfDay</p>
+      <li><code>msg.ar_datamodel_value</code> OR specified <i style="font-style:italic;">Value</i></li>
+        <p>Represents the variable's value (<code>String</code> - required).</p>
+      <li><code>msg.ar_datamodel_quality</code> OR <code>"good"</code> by default.</li>
+        <p>Represents the variable's quality. (<code>"good"</code> or <code>"bad"</code> - optional)</p>
+  </ul>
+  <h3>Ouputs</h3>
+  <li>Payload </li>
+   <p>Represents the well formated AOA variable created from previous <code>msg</code> properties or specified values.</p>
+  <h3>Details</h3>
+  <p>The Augmented Operator variable node is an utility node that creates a well formated AOAvariable. An AOAvariable is an <i style="font-style:italic;">Object</i> containing one and only <i style="font-style:italic;">property</i> that represents the variable name and its contents. Once specified, such variable could be <code>PUT</code> or <code>GET</code> into/from the Augmented Operator node when linked together.</p>
+</script>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
+
+<!-- Augmented-Operator-server node -->
+<script type="text/javascript">
+    RED.nodes.registerType('Augmented-Operator-server', {
+        category: 'Schneider Electric',
+        color: '#088A08',
+        defaults: {
+            arserverport : { value: "8082" , required:true, validate: RED.validators.number() },
+            arservermethod: {value:"GET", required:true},
+            arserverbufferinterval: {value:"0", required:true}
+        },
+        inputs:1,
+        outputs:1,
+        icon: "arserver.jpg",
+        
+        label: function() {
+            return "Augmented Operator" ;
+        },
+        labelStyle: function () {
+            return this.arservervarname ? "node_label_italic" : "";
+        },
+        oneditprepare: function(){
+
+        },
+        oneditsave: function(){
+            this.arserverport = $("#node-input-arserverport").val();
+            this.arservermethod = $("#node-input-arservermethod").val();
+            this.arserverbufferinterval = $("#node-input-arserverbufferinterval").val();
+        }
+    }
+    );
+</script>
+
+<script type="text/x-red" data-template-name="Augmented-Operator-server">
+    <div class="form-row">
+        <label for="node-input-arservermethod"><i class="fa fa-tasks"></i> Method</label>
+        <select type="text" id="node-input-arservermethod">
+            <option value="GET">GET</option>
+            <option value="PUT">PUT</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-arserverport"><i class="icon-tasks"></i> Port</label>
+        <div><label for="node-input-arserverport">localhost:</label>
+        <input type="text" id="node-input-arserverport" placeholder="8082"></div>
+    </div>
+     <div class="form-row">
+        <label for="node-input-arserverbufferinterval"><i class="icon-tasks"></i> Buffer interval</label>
+        <select type="text" id="node-input-arserverbufferinterval" value="0">
+            <option value="0">-None-</option>
+            <option value="200">200 ms.</option>
+            <option value="500">500 ms.</option>
+            <option value="1000">1 s.</option>
+        </select>
+    </div>
+
+    <div class="form-tips">
+        <p><b>Note: </b>"Buffer interval" enables to specify a duration during which all the requests to Augmented Operator server are buffered before being sent. For exemple, a <code>200 ms.</code> duration means that all the requests made to that node in a 200ms interval are grouped into one request. The default value <code>-None-</code> means that no buffer is used and that all the requests are sent immediately.</p>
+    </div>
+    
+    <script type="text/x-red" data-help-name="Augmented-Operator-server">
+        <p>The Augmented Operator server node facilitates the usage of the Augmented Operator Server. It enables to store and retrieve variables through a REST-like api PUT and GET.</p>
+        <p></p>
+        <p>Technically, it requests in HTTP the ARServer deployed on localhost. For exemple the method GET of two variables 'var1' and 'var2' is realized through the request url: <pre>http://localhost/api/v2.0/variable/name?var1,var2.</pre></p>
+    </script>
+</script>

@@ -1,0 +1,38 @@
+{
+    "name": "node-red-docker",
+    "version": "1.0.0",
+    "description": "",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/node-red/node-red.git"
+    },
+    "main": "node_modules/node-red/red/red.js",
+    "scripts": {
+      "start": "node $NODE_OPTIONS node_modules/node-red/red.js $FLOWS"
+    },
+    "author": "FabioM",
+    "license": "Apache-2.0",
+    "dependencies": {      
+        "node-red": "1.3.6",
+        "se-node-red-modbus": "file:se-node-red-modbus",
+        "node-red-augmented-operator": "file:node-red-augmented-operator",
+        "node-red-contrib-schneider-powertag": "*",
+        "node-red-contrib-schneider-powerlogic": "*",
+        "node-red-contrib-schneider-metsepm3200": "*",
+        "node-red-contrib-modbus": "*",
+        "node-red-contrib-s7": "*",
+        "node-red-hmi-subscribe-alarms": "file:hmi-runtime-subscribe-alarms",
+        "node-red-hmi-subscribe-tags": "file:hmi-runtime-subscribe-tags",
+        "node-red-hmi-write-tags": "file:hmi-runtime-write-tags",
+        "node-red-hmi-read-tags": "file:hmi-runtime-read-tags",
+        "node-red-hmi-read-alarms": "file:hmi-runtime-read-alarms",
+        "node-red-node-base64": "*",
+        "node-red-node-msgpack": "*",
+        "node-red-node-random": "*",
+        "node-red-node-suncalc": "*",
+        "node-red-dashboard": "*"
+    },
+    "engines": {
+        "node": "*"
+    }
+  }

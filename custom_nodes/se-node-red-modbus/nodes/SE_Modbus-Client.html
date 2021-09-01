@@ -1,0 +1,361 @@
+ <!--Register Node Type-->
+ <script type="text/javascript">
+  RED.nodes.registerType('SE_Modbus-Client', {
+    category: 'config',
+    defaults: {
+
+      name: {value: "modbus", required: true},
+      clienttype: {value: "tcp", required: true},
+      bufferCommands: {value: "1"},
+
+      tcpHost:{value: "127.0.0.1", required: true,validate:  function (val) {
+                    if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(val)) {  
+                        return (true)  
+                      }  
+                      alert("SE Modbus Slave Configuration: Incorrect value for IP Field")  
+                      return (false)  
+                    }  
+            },
+
+      tcpPort: {value: 502, required: true, validate: function(val){
+            if(RED.validators.number() && (val >= 0 && val <= 65535)&&(val % 1)  ===0){
+                return true;
+            }
+            else{
+              alert("SE Modbus Slave Configuration: Incorrect value for Port Field")  
+                return false;
+            }
+            }},
+      tcpType: {value: "DEFAULT", required: true},
+
+      serialPort: {value: "/dev/ttyUSB", required: true},
+      serialType: {value: "RTU", required: true},
+      serialBaudrate: {value: 19200, required: true, validate: RED.validators.number()},
+      serialDatabits: {value: 8, required: true, validate: RED.validators.number()},
+      serialStopbits: {value: 1, required: true, validate: RED.validators.number()},
+      serialParity: {value: "none", required: true},
+      serialConnectionDelay: {value: 100,validate: function(val){
+            if(RED.validators.number() && (val >= 0 && val <= 65535)&&(val % 1)  ===0){
+                return true;
+            }
+            else{
+              alert("SE Modbus Slave Configuration: Incorrect value for Connection delay Field")  
+                return false;
+            }
+            }},
+
+      commandDelay: {value: 100,validate: function(val){
+            if(RED.validators.number() && (val >= 0 && val <= 65535)&&(val % 1)  ===0){
+                return true;
+            }
+            else{
+              alert("SE Modbus Slave Configuration: Incorrect value for Queue Delay Field")  
+              return false;
+            }
+            }},
+      clientTimeout: {value: 1000,validate: function(val){
+            if(RED.validators.number() && (val >= 0 && val <= 65535)&&(val % 1)  ===0){
+                return true;
+            }
+            else{
+              alert("SE Modbus Slave Configuration: Incorrect value for Timeout Field")  
+                return false;
+            }
+            }},
+      reconnectTimeout: {value: 2000,validate: function(val){
+            if(RED.validators.number() && (val >= 0 && val <= 65535)&&(val % 1)  ===0){
+                return true;
+            }
+            else{
+              alert("SE Modbus Slave Configuration: Incorrect value for Reconnect Timeout Field")  
+                return false;
+            }
+            }},
+    },
+    label: function () {
+      let node = this
+      if (node.clienttype == "tcp") {
+        return  node.name +"@"  + node.tcpHost + ':Port:' + node.tcpPort
+      } else {
+        return node.name +"@" + node.serialPort  +':Baud Rate:' + node.serialBaudrate +':Client ID:' + node.id
+      }
+    },
+    oneditprepare: function () {
+
+      let previous = null
+      let node = this
+      node.ports = []
+      let clientTypeSelector = $('#node-config-input-clienttype')
+      let inputsSerial = $("#node-inputs-modbus-serial")
+      let inputsSerialExtras = $("#node-inputs-modbus-serial-extras")
+      let inputsTCP = $("#node-inputs-modbus-tcp")
+      let queueButton = $("#node-config-input-bufferCommands")
+      let queueProxy = $("#node-inputs-queue-proxy")
+
+      queueButton.change(function () {
+          if (queueButton.val() == '1') {
+            queueProxy.show();
+          }
+          else {
+            queueProxy.hide();                   
+          }
+      })
+
+
+      clientTypeSelector.on('focus', function () {
+        previous = this.value
+      }).change(function () {
+
+        if (previous == null) {
+          previous = $("#node-config-input-clienttype").val()
+        }
+
+        if (node.commandDelay) {
+          node.commandDelay = parseInt(node.commandDelay)
+        }
+
+        if (node.clientTimeout) {
+          node.clientTimeout = parseInt(node.clientTimeout)
+        }
+
+        if (node.reconnectTimeout) {
+          node.reconnectTimeout = parseInt(node.reconnectTimeout)
+        }
+
+        switch (clientTypeSelector.val()) {
+          case 'tcp':
+            inputsSerialExtras.hide()
+            inputsSerial.hide()
+            inputsTCP.show()
+
+            if (node.tcpHost) {
+              node.tcpHost.required = true
+              node.tcpPort.required = true
+              if (node.tcpType) {
+                node.tcpType.required = true
+              }
+            }
+
+            if (node.serialPort) {
+              node.serialPort.required = false
+              if (node.serialType) {
+                node.serialType.required = false
+              }
+              node.serialBaudrate.required = false
+            }
+
+            if (node.serialDatabits) {
+              node.serialDatabits.required = false
+              node.serialStopbits.required = false
+              node.serialParity.required = false
+            }
+            break
+          case 'serial':
+          case 'simpleser':
+            if (clientTypeSelector.val() === 'simpleser') {
+              inputsSerialExtras.hide()
+              node.serialDatabits.value = 8
+              node.serialStopbits.value = 1
+              node.serialParity.value = 'none'
+            } else {
+              inputsSerialExtras.show()
+            }
+
+            inputsSerial.show()
+            inputsTCP.hide()
+
+            if (node.tcpHost) {
+              node.tcpHost.required = false
+              node.tcpPort.required = false
+              if (node.tcpType) {
+                node.tcpType.required = false
+              }
+            }
+
+            if (node.serialPort) {
+              node.serialPort.required = true
+              if (node.serialType) {
+                node.serialType.required = true
+              }
+              node.serialBaudrate.required = true
+            }
+
+            if (node.serialDatabits) {
+              node.serialDatabits.required = true
+              node.serialStopbits.required = true
+              node.serialParity.required = true
+            }
+            break
+          default:
+            break
+        }
+      })
+
+      try {
+        $("#node-config-input-serialPort").autocomplete("destroy")
+      }
+      catch (err) {
+      }
+
+      
+      $("#node-config-lookup-serial").click(function () {
+        $("#node-config-lookup-serial").addClass('disabled')
+
+        $.getJSON('serialports', function (data) {
+          $("#node-config-lookup-serial").removeClass('disabled')
+          node.ports = []
+
+          $.each(data, function (i, port) {
+            node.ports.push(port.comName)
+          })
+
+          $("#node-config-input-serialPort").autocomplete({
+            source: node.ports,
+            minLength: 0,
+            close: function (event, ui) {
+              $("#node-config-input-serialPort").autocomplete("destroy")
+            }
+          }).autocomplete("search", "")
+        })
+      })
+
+      // $("#node-config-input-serialPort").change(function () {
+      //   $.getJSON('portInuse', function (data) {
+      //     $.each(data, function (i, port) {
+      //       if($("#node-config-input-serialPort").val() == port.comport && node.id != port.nodeID){
+      //         alert("Client Configuration Error: Same COM Port is already added in client")  
+      //         $("#node-config-input-serialPort").val("")
+      //          return false;
+      //       }
+      //     })
+      //   })
+      // })
+    }
+  })
+</script>
+<script type='text/x-red' data-template-name='SE_Modbus-Client'>
+
+  <div class="heading"> 
+    <label> Schneider Electric </label> 
+ </div>
+ 
+	<!--Page Break-->
+	<br>
+
+ <div class='form-row'> <label for='node-config-input-name'><i class='icon-tag'></i> 
+ Name</label> <input type='text' id='node-config-input-name' 
+placeholder='Name'> </div> 
+
+<div class='form-row'> <label for='node-config-input-clienttype'><i class='icon-bookmark'>
+</i> Type</label> <select type='text' id='node-config-input-clienttype' 
+style='width:140px'> <option value='tcp' select>TCP</option>  <option value='serial'>Serial</option> </select> </div> <hr> 
+
+<div id='node-inputs-modbus-tcp'> 
+<div class='form-row'> 
+<label for='node-config-input-tcpHost'><i class='icon-bookmark'></i>Host 
+</label> <input type='text' id='node-config-input-tcpHost'> </div> 
+<div class='form-row'> <label 
+for='node-config-input-tcpPort'><i class='icon-bookmark'></i> Port
+</label> <input type='text' id='node-config-input-tcpPort'> </div> <div class='form-row'> <label 
+for='node-config-input-tcpType'><i class='icon-bookmark'></i> TCP Type</label> <select type='text' 
+id='node-config-input-tcpType' style='width:140px'> <option value='DEFAULT' select>DEFAULT</option> 
+<option value='TELNET'>TELNET</option> <option value='C701'>C701
+<option value='TPC-RTU-BUFFERED'>RTU-BUFFERED</option> 
+</option> </select> </div> </div> 
+
+<div id='node-inputs-modbus-serial'> <div class='form-row'> <label 
+for='node-config-input-serialPort'><i class='fa fa-random'></i> Serial Port
+</span></label> <input type='text' id='node-config-input-serialPort' style='width:60%' 
+placeholder='/dev/ttyUSB or COM4'> <a id='node-config-lookup-serial' class='btn'><i 
+id='node-config-lookup-serial-icon' class='fa fa-search'></i></a> </div> <div class='form-row'> <label 
+for='node-config-input-serialType'><i class='icon-bookmark'></i> Serial Type
+</label> <select type='text' id='node-config-input-serialType' style='width:140px'> <option value='RTU' 
+select>RTU</option> <option value='ASCII'>ASCII</option> 
+</select> </div> <div class='form-row'> <label for='node-config-input-serialBaudrate'><i class='icon-bookmark'></i> Baud rate
+ </label> <select id='node-config-input-serialBaudrate' 
+style='max-width:140px'> <option value='115200'>115200</option> <option value='57600'>57600</option> <option 
+value='38400'>38400</option> <option value='19200'>19200</option> <option value='9600'>9600</option> <option 
+value='4800'>4800</option> <option value='2400'>2400</option> <option value='1200'>1200</option> <option value='300'>
+300</option> <option value='110'>110</option> <option value='75'>75</option> </select> </div> </div> 
+
+<div 
+id='node-inputs-modbus-serial-extras'> <div class='form-row'> <label for='node-config-input-serialDatabits'><i 
+class='icon-bookmark'></i> Data Bits</label> <select id='node-config-input-serialDatabits' style='max-width:80px'> 
+<option value='8'>8</option> <option value='7'>7</option>
+ <option value='6'>6</option> <option value='5'>5</option> </select> </div> <div class='form-row'> <label 
+for='node-config-input-serialStopbits'><i class='icon-bookmark'></i> Stop Bits
+</label> <select id='node-config-input-serialStopbits' style='max-width:80px'> <option value='1'>1</option> 
+<option value='1.5'>1.5</option> <option value='2'>2</option> </select> </div> <div class='form-row'> <label 
+for='node-config-input-serialParity'><i class='icon-bookmark'></i> Parity
+</label> <select id='node-config-input-serialParity' style='max-width:80px'> <option value='none'>None</option> 
+<option value='even'>Even</option><option value='odd'>Odd</option>  <option value='mark'>Mark</option> <option 
+value='space'>Space</option> </select> </div> <div class='form-row'> <label 
+for='node-config-input-serialConnectionDelay'> <i class='fa fa-random'></i> Connection delay (ms) </label> <input type='text' 
+id='node-config-input-serialConnectionDelay' style='max-width:80px' placeholder='500'> </div> </div> <hr> 
+
+
+<div class='form-row'> <label for='node-config-input-clientTimeout'><i 
+class='icon-time'></i>Timeout (ms)</label> <input type='text' 
+id='node-config-input-clientTimeout' placeholder='1000' style='max-width:80px'> </div> 
+
+<div class='form-row'> <label 
+for='node-config-input-reconnectTimeout'> <i class='icon-time'></i> Reconnect timeout (ms) </label> <input type='text' 
+id='node-config-input-reconnectTimeout' placeholder='2000' style='max-width:80px'> </div> <hr>  
+
+  <div class="form-row">
+    <label for="node-config-input-bufferCommands"><i class="fa fa-random"></i> Queue commands</label>
+    <select type='text' id='node-config-input-bufferCommands'> 
+        <option value="1">Enable</option>
+        <option value="2">Disable</option>
+    </select>
+  </div>
+  
+  <div id='node-inputs-queue-proxy'>
+  <div class='form-row'> <label for='node-config-input-commandDelay'><i class='icon-time'></i>
+    Queue delay (ms)</label> <input type='text' id='node-config-input-commandDelay' 
+   placeholder=1 style='max-width:100px'> </div> 
+
+</div> 
+</script> <script type='text/x-red' data-help-name='SE_Modbus-Client'>
+  <h1>Introduction</h1>
+  
+      <p>Connects to a Modbus TCP and Serial Devices to read and write register values at a given poll rate.</p>
+  
+      <h1> Description</br> </h1>
+  
+          <h2>Necessary Configurations Required</h2>
+              <ul>
+                  
+                  <li>The Modbus device(Tcp and Serial Slave) from  where the data has to be read or write. It is having combo-box for selection of the earlier defined slaves.
+                      For adding a new slave, edit button should be given next to the selector field. Clicking on the 
+                      edit button, the Slave configuration window shall appear and should contain the following fields:
+                      <ul>
+                          <li>Type:(TCP/Serial). If selected type is TCP following configurations are required.</li>
+                              <li>Host: Text filed to configure the slave IP address.</li>
+                              <li>Port (default 502): Text field to configure the port number. </li>
+                              <li>TCP Type: There are four options availabele. Default, Telnet, C701 and RTU-BUFFERED.Only Default option 
+                                  is verified for this node.</li>
+                          <li>Type:(TCP/Serial). If selected type is Serial following configurations are required.</li>
+                              <li>Serial Port: Text field to configure the Serial port name. (/dev/tty.usbserial | COM[1..n])</li>
+                              <li>Baud rate: A drop down option for selecting the baud rate.(115200, 19200, 9600 ...)</li>
+                              <li>Databits: A drop down option for selecting the data bit (5, 6, 7 and 8).</li>
+                              <li>Stopbits: A drop down option for selecting the stop bit (1, 1.5 and 2).</li>
+                              <li>Parity: A drop down option for selecting the parity bit (None, Even ,Odd, Mark and Space).</li>
+                              <li>Serial Type: A drop down option for selecting the serial type(RTU, ASCII).</li>
+                              <li>Connection delay: Time to delay first command sending after reconnect(default 500 ms) </li>
+  
+                              <li>Queue commands (Enable/Disable) - If selected Enable it buffers incoming Modbus commands and send them with delay.</li>
+                              <li>Queue Delay (default 0 ms) - It is millisecond(ms) interval to delay sending commands from queue (sumOfWaiting=requestsPerCycle*delay).</li>
+                              <li>Timeout (default 1000 ms) - It is millisecond(ms) delay for the command timeout on ModbusRTU command.</li>
+                              <li>Reconnect timeout (default 2000 ms) - It is the reconnect time out.</li>
+                      </ul>
+                  </li>
+              </ul>
+  
+      <h1> Reference </h1>
+          <ul>
+              <li> 
+                  <a href="http://www.modbus.org/">Click here</a>
+              </li>
+          </ul>
+</script> 

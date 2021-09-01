@@ -1,0 +1,9 @@
+{
+    "version" : "0.0.1",
+    "name" : "se_modbus-client",
+    "node-red" : {
+        "nodes": {
+            "se_modbus-client": "SE_Modbus-Client.js"
+        }
+    }
+}
