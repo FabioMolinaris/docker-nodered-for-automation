@@ -30,7 +30,10 @@
         "node-red-node-msgpack": "*",
         "node-red-node-random": "*",
         "node-red-node-suncalc": "*",
-        "node-red-dashboard": "*"
+        "node-red-dashboard": "*",
+        "node-red-contrib-opcua": "*",
+        "node-red-contrib-iiot-opcua": "*",
+        "node-red-contrib-cip-st-ethernet-ip": "*"
     },
     "engines": {
         "node": "*"
